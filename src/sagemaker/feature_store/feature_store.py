@@ -21,7 +21,7 @@ import datetime
 from typing import Any, Dict, Sequence, Union
 
 import attr
-import pandas as pd
+import logging
 
 from sagemaker import Session
 from sagemaker.feature_store.dataset_builder import DatasetBuilder
@@ -33,6 +33,18 @@ from sagemaker.feature_store.inputs import (
     SortOrderEnum,
     Identifier,
 )
+from sagemaker.utilities.pandas import is_likely_a_pandas_df
+
+from sagemaker.utils import DeferredError, resolve_value_from_config
+
+logger = logging.getLogger(__name__)
+
+try:
+    import pandas as pd
+except ImportError as e:
+    logger.warning("pandas failed to import. Feature store features will be impaired or broken.")
+    # Any subsequent attempt to use pandas will raise the ImportError
+    pd = DeferredError(e)
 
 
 @attr.s
@@ -49,7 +61,7 @@ class FeatureStore:
 
     def create_dataset(
         self,
-        base: Union[FeatureGroup, pd.DataFrame],
+        base: Union[FeatureGroup, "pd.DataFrame"],
         output_path: str,
         record_identifier_feature_name: str = None,
         event_time_identifier_feature_name: str = None,
@@ -76,7 +88,7 @@ class FeatureStore:
             ValueError: Base is a Pandas DataFrame but no record identifier feature name nor event
                 time identifier feature name is provided.
         """
-        if isinstance(base, pd.DataFrame):
+        if is_likely_a_pandas_df(base):
             if record_identifier_feature_name is None or event_time_identifier_feature_name is None:
                 raise ValueError(
                     "You must provide a record identifier feature name and an event time "

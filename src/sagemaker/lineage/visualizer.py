@@ -17,7 +17,17 @@ import logging
 
 from typing import Optional, Any, Iterator
 
-import pandas as pd
+from sagemaker.utils import DeferredError
+
+logger = logging.getLogger(__name__)
+
+try:
+    import pandas as pd
+except ImportError as e:
+    logger.warning("pandas failed to import. Visualizer features will be impaired or broken.")
+    # Any subsequent attempt to use pandas will raise the ImportError
+    pd = DeferredError(e)
+
 from pandas import DataFrame
 
 from sagemaker.lineage._api_types import AssociationSummary
@@ -46,7 +56,7 @@ class LineageTableVisualizer(object):
         artifact_arn: Optional[str] = None,
         context_arn: Optional[str] = None,
         actions_arn: Optional[str] = None,
-    ) -> DataFrame:
+    ) -> "DataFrame":
         """Generate a dataframe containing all incoming and outgoing lineage entities.
 
           Examples:
@@ -142,7 +152,7 @@ class LineageTableVisualizer(object):
             logging.warning("No trial components found for %s", job_arn)
         return start_arn
 
-    def _get_associations_dataframe(self, arn: str) -> DataFrame:
+    def _get_associations_dataframe(self, arn: str) -> "DataFrame":
         """Create a data frame containing lineage association information.
 
         Args:

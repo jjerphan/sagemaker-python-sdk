@@ -34,7 +34,6 @@ from urllib.parse import urlparse
 from multiprocessing.pool import AsyncResult
 import signal
 import attr
-import pandas as pd
 from pandas import DataFrame
 
 import boto3
@@ -65,9 +64,16 @@ from sagemaker.feature_store.inputs import (
     OnlineStoreConfigUpdate,
     OnlineStoreStorageTypeEnum,
 )
-from sagemaker.utils import resolve_value_from_config
+from sagemaker.utils import DeferredError, resolve_value_from_config
 
 logger = logging.getLogger(__name__)
+
+try:
+    import pandas as pd
+except ImportError as e:
+    logger.warning("pandas failed to import. Analytics features will be impaired or broken.")
+    # Any subsequent attempt to use pandas will raise the ImportError
+    pd = DeferredError(e)
 
 
 @attr.s
